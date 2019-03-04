@@ -1,0 +1,9 @@
+# Byte-compiled / optimized / binary files.
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging / environments.
+build/
+dist/
+sdist/
+venv/
