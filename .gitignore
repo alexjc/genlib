@@ -3,7 +3,11 @@ __pycache__/
 *.py[cod]
 
 # Distribution / packaging / environments.
+*.egg-info/
 build/
 dist/
 sdist/
-venv/
+.venv/
+
+# Code editors.
+.vscode
