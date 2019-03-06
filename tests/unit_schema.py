@@ -2,8 +2,6 @@
 
 import unittest
 
-import pytest
-
 from genlib.schema import Input, Output
 
 

@@ -3,8 +3,6 @@
 import unittest
 import itertools
 
-import pytest
-
 from genlib.types import check_type
 
 

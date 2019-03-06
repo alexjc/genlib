@@ -2,8 +2,6 @@
 
 import unittest
 
-import pytest
-
 from genlib.stream import Item
 
 
