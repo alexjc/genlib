@@ -8,3 +8,5 @@ install:
     - poetry install
 script:
     - poetry run pytest -c tests/pytest.ini
+after_success:
+    - poetry run codecov
