@@ -14,8 +14,8 @@ TYPE_REGISTRY = {
 }
 
 
-def add_type_class(name, type_):
-    TYPE_REGISTRY[name] = type_
+def add_type_class(name, type_class):
+    TYPE_REGISTRY[name] = type_class
 
 
 def create_type(spec):
@@ -27,8 +27,4 @@ def create_type(spec):
 
 
 def check_type(spec):
-    try:
-        eval(spec, TYPE_REGISTRY)  # pylint: disable=eval-used
-        return True
-    except Exception:  # pylint: disable=broad-except
-        return False
+    return create_type(spec) is not None

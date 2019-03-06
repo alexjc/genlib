@@ -1,15 +1,15 @@
 # genlib — Copyright (c) 2019, Alex J. Champandard. Code licensed under the GNU AGPLv3.
 
-import unittest
+import typing
 import itertools
 
-from genlib.types import check_type
+from genlib.types import check_type, add_type_class
 
 
 ATOMIC_TYPES = ("float", "int", "str", "bool", "Any", "T")
 
 
-class TestAtomicTypes(unittest.TestCase):
+class TestAtomicTypes:
     def test_define_valid(self):
         for t in ATOMIC_TYPES:
             assert check_type(f"{t}") is True
@@ -19,7 +19,7 @@ class TestAtomicTypes(unittest.TestCase):
             assert check_type(f"{t[:-1]}") is False
 
 
-class TestCompositeTypes(unittest.TestCase):
+class TestCompositeTypes:
     def test_define_list_specific(self):
         for t in ATOMIC_TYPES:
             assert check_type(f"List[{t}]") is True
@@ -46,3 +46,14 @@ class TestCompositeTypes(unittest.TestCase):
     def test_define_dict_one_argument_unknown(self):
         assert check_type("Dict(Nope)") is False
         assert check_type("Dict[Nope]") is False
+
+
+class TestCustomTypes:
+    def test_add_type_class(self):
+        custom_type = typing.NewType("Custom", object)
+        add_type_class("Custom", custom_type)
+
+    def test_use_custom_type(self):
+        binary_type = typing.NewType("Binary", typing.ByteString)
+        add_type_class("Binary", binary_type)
+        assert check_type("Binary") is True
