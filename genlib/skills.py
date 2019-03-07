@@ -9,4 +9,4 @@ class BaseSkill:
     outputs = []
 
     async def process(self):
-        pass
+        raise NotImplementedError

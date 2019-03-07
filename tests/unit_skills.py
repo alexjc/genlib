@@ -12,7 +12,12 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestBaseSkill:
-    async def test_skill_process_returns_one_output(self):
+    async def test_base_skill_raises_not_implemented_excetion(self):
+        skill = BaseSkill()
+        with pytest.raises(NotImplementedError):
+            await skill.process()
+
+    async def test_custom_skill_process_returns_one_output(self):
         class FakeSkill(BaseSkill):
             outputs = [Output("number", spec="int")]
 
