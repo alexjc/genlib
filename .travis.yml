@@ -1,12 +1,19 @@
 dist: xenial
 language: python
 python:
-    - '3.7-dev'
+    - '3.7'
     - '3.8-dev'
+cache:
+    directories:
+        - $HOME/.cache/pip
+before_install:
+    - if [ -f $HOME/.cache/pip/poetry.lock ]; then mv $HOME/.cache/pip/poetry.lock .; fi
 install:
     - pip install poetry
-    - poetry install
+    - poetry update
 script:
     - poetry run pytest -c tests/pytest.ini
+before_cache:
+    - if [ -f poetry.lock ]; then cp poetry.lock $HOME/.cache/pip/; fi
 after_success:
     - poetry run codecov
