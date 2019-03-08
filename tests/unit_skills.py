@@ -2,8 +2,7 @@
 
 import pytest
 
-from genlib.skills import BaseSkill
-from genlib.schema import Input, Output
+from genlib.skills import BaseSkill, Input, Output
 from genlib.stream import Item
 
 

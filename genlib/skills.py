@@ -1,5 +1,7 @@
 # genlib — Copyright (c) 2019, Alex J. Champandard. Code licensed under the GNU AGPLv3.
 
+from .schema import SkillInput as Input, SkillOutput as Output
+
 
 class BaseSkill:
     """Abstract base class for a generative skill.
