@@ -9,8 +9,7 @@ import importlib.util
 import watchdog.events
 import watchdog.observers
 
-from . import skills
-
+from . import skills, schema
 
 __all__ = ["LocalRegistry", "FileSystemWatcher"]
 
@@ -33,8 +32,13 @@ class LocalRegistry:
 
     def __init__(self):
         self.modules = {}
-        self.skills = {}
-        self.watcher = FileSystemWatcher(callback=self.load_file)
+        self.schemas = {}
+        self.classes = {}
+        self.watcher = FileSystemWatcher(callback=self._load_file)
+
+    # ---------------------------------------------------------------------------------
+    # Public Interface
+    # ---------------------------------------------------------------------------------
 
     def load_folder(self, path, watch=True):
         if watch:
@@ -43,29 +47,46 @@ class LocalRegistry:
         self._create_package(path)
 
         for filename in self._walk_folder(path, is_python_source):
-            self.load_file(path, filename)
+            self._load_file(path, filename)
 
-    def _create_package(self, path):
-        package_name = hashlib.md5(path.encode("utf-8")).hexdigest()
+    def construct(self, schema):
+        return self.classes[schema.uri]()
+
+    def find_skill_schema(self, uri):
+        return self.schemas[uri]
+
+    def list_skills_schema(self):
+        return list(self.schemas.keys())
+
+    # ---------------------------------------------------------------------------------
+    # Helper Functions
+    # ---------------------------------------------------------------------------------
+
+    def _create_package(self, root):
+        package_name = hashlib.md5(root.encode("utf-8")).hexdigest()
         package_spec = importlib.util.spec_from_file_location(
-            package_name, path + "/__init__.py", submodule_search_locations=[path]
+            package_name, root + "/__init__.py", submodule_search_locations=[root]
         )
         package_obj = importlib.util.module_from_spec(package_spec)
         sys.modules[package_name] = package_obj
 
-    def load_file(self, root, path):
+    def _load_file(self, root, path):
         package_name = hashlib.md5(root.encode("utf-8")).hexdigest()
-        module_name = os.path.splitext(path[len(root) + 1 :])[0].replace("/", ".")
+        module_path = path[len(root) + 1 :]
+        module_name = os.path.splitext(module_path)[0].replace("/", ".")
         module_name = package_name + "." + module_name
         module_obj = self._import_file(module_name, path)
-        self.load_objects(module_obj, path)
+        self._load_objects(module_obj, module_path)
 
-    def load_objects(self, module, path):
+    def _load_objects(self, module, path):
         for key in dir(module):
             obj = getattr(module, key)
             if not is_python_skill(obj):
                 continue
-            self.skills[f"{path}:{key}"] = obj
+            uri = f"{path}:{key}"
+            scm = schema.SkillSchema(uri, inputs=obj.inputs, outputs=obj.outputs)
+            self.schemas[uri] = scm
+            self.classes[uri] = obj
 
     def _import_file(self, name, path):
         module_spec = importlib.util.spec_from_file_location(name, path)
