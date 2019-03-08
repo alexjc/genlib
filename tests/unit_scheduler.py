@@ -42,15 +42,22 @@ pytestmark = pytest.mark.asyncio
 class TestScheduleSingleTask:
     async def test_correctly_spawns_halts(self, scheduler, fake_skill):
         await scheduler.spawn(fake_skill)
+        assert scheduler.get_active_skill_count() == 1
+        assert fake_skill in scheduler.list_active_skills()
+
         await scheduler.halt(fake_skill)
+        assert scheduler.get_active_skill_count() == 0
+        assert fake_skill not in scheduler.list_active_skills()
 
     async def test_premature_halt_throws_exception(self, scheduler, fake_skill):
         with pytest.raises(KeyError):
             await scheduler.halt(fake_skill)
+        assert fake_skill not in scheduler.list_active_skills()
 
     async def test_unknown_tick_throws_exception(self, scheduler, fake_skill):
         with pytest.raises(KeyError):
             await scheduler.tick(fake_skill)
+        assert fake_skill not in scheduler.list_active_skills()
 
     async def test_correctly_ticks_multiple_times(self, scheduler, fake_skill):
         await scheduler.spawn(fake_skill)

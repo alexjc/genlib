@@ -12,21 +12,28 @@ class Runner:
 
     def __init__(self, skill):
         self.skill = skill
-        self._done = False
+        self.done = False
+        self.generator = self.run()
 
     async def run(self):
         yield (await self.skill.on_initialize())
         try:
-            while not self._done:
+            while not self.done:
                 yield (await self.skill.process())
         except Exception as exc:
             yield exc
         finally:
             yield (await self.skill.on_shutdown())
 
-    async def stop(self, task):
-        self._done = True
-        async for _ in task:
+    async def start(self):
+        # Wait for `on_initialize` message from run().
+        async for _ in self.generator:
+            break
+
+    async def stop(self):
+        self.done = True
+        # Pause until `on_shutdown` is done from run().
+        async for _ in self.generator:
             break
 
 
@@ -35,29 +42,35 @@ class Scheduler:
     """
 
     def __init__(self):
-        self._tasks = {}
+        self._runners = {}
 
     async def spawn(self, skill):
         runner = Runner(skill)
-        task = runner.run()
-        self._tasks[id(skill)] = (runner, task)
-
-        async for _ in task:
-            break
+        await runner.start()
+        self._runners[id(skill)] = runner
 
     async def tick(self, skill):
-        _, task = self._tasks[id(skill)]
-        async for result in task:
+        runner = self._runners[id(skill)]
+        async for result in runner.generator:
             if isinstance(result, Exception):
                 raise result
             else:
                 return result
 
+    def list_active_skills(self):
+        """Reverse iterator over the skills that are currently active.
+        """
+        for runner in reversed(list(self._runners.values())):
+            yield runner.skill
+
+    def get_active_skill_count(self):
+        return len(self._runners)
+
     async def halt(self, skill):
-        runner, task = self._tasks.pop(id(skill))
-        await runner.stop(task)
+        runner = self._runners.pop(id(skill))
+        await runner.stop()
 
     async def shutdown(self):
-        if len(self._tasks) > 0:
-            await asyncio.wait([r.stop(t) for r, t in self._tasks.values()])
-            self._tasks.clear()
+        if len(self._runners) > 0:
+            await asyncio.wait([r.stop() for r in self._runners.values()])
+            self._runners.clear()
