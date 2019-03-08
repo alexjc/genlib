@@ -27,3 +27,8 @@ class TestBaseSkill:
         skill = FakeSkill()
         result = await skill.process()
         assert result["number"].data == 1234
+
+    async def test_base_skill_clean_initialize_shutdown(self):
+        skill = BaseSkill()
+        await skill.on_initialize()
+        await skill.on_shutdown()
