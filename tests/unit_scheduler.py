@@ -18,6 +18,11 @@ class FakeSkill(BaseSkill):
         self.counter = -1
 
 
+class ProblemSkill(BaseSkill):
+    async def process(self):
+        raise NotImplementedError
+
+
 @pytest.fixture
 def fake_skill():
     yield FakeSkill()
@@ -59,7 +64,19 @@ class TestScheduleSingleTask:
         await scheduler.spawn(fake_skill)
         assert fake_skill.counter == 0
 
-    async def __test_halt_correctly_calls_on_shutdown(self, scheduler, fake_skill):
+    async def test_halt_correctly_calls_on_shutdown(self, scheduler, fake_skill):
         await scheduler.spawn(fake_skill)
         await scheduler.halt(fake_skill)
         assert fake_skill.counter == -1
+
+
+@pytest.fixture
+def problem_skill():
+    yield ProblemSkill()
+
+
+class TestSchedulerErrorHandling:
+    async def test_exception_is_caught(self, scheduler, problem_skill):
+        await scheduler.spawn(problem_skill)
+        with pytest.raises(NotImplementedError):
+            await scheduler.tick(problem_skill)

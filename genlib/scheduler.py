@@ -19,6 +19,8 @@ class Runner:
         try:
             while not self._done:
                 yield (await self.skill.process())
+        except Exception as exc:
+            yield exc
         finally:
             yield (await self.skill.on_shutdown())
 
@@ -46,7 +48,10 @@ class Scheduler:
     async def tick(self, skill):
         _, task = self._tasks[id(skill)]
         async for result in task:
-            return result
+            if isinstance(result, Exception):
+                raise result
+            else:
+                return result
 
     async def halt(self, skill):
         runner, task = self._tasks.pop(id(skill))
