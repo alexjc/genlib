@@ -1,12 +1,14 @@
 # genlib — Copyright (c) 2019, Alex J. Champandard. Code licensed under the GNU AGPLv3.
 
 import asyncio
+import itertools
 import collections
 
 
 class Subscription:
     def __init__(self):
         self._queue = asyncio.Queue()
+        self._task = asyncio.current_task()
 
 
 class Broker:
@@ -24,13 +26,21 @@ class Broker:
         try:
             sub = self._subscribe(channel)
             while True:
-                data = await sub._queue.get()
-                yield data
+                try:
+                    data = await sub._queue.get()
+                    yield data
+                except asyncio.CancelledError:
+                    break
         finally:
             self._unsubscribe(channel, sub)
 
+    def cancel(self, sub):
+        sub._task.cancel()
+
     async def shutdown(self):
-        pass
+        for sub in itertools.chain(*self._subscriptions.values()):
+            self.cancel(sub)
+        # Each of the listen() tasks should unsubscribe itself automatically.
 
     def get_subscription_count(self, channel):
         return len(self._subscriptions[channel])
