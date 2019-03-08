@@ -18,21 +18,30 @@ class Broker:
     def __init__(self):
         self._subscriptions = collections.defaultdict(list)
 
-    async def publish(self, channel, data):
+    async def publish(self, channel, message):
         for sub in self._subscriptions[channel]:
-            sub._queue.put_nowait(data)
+            sub._queue.put_nowait(message)
 
-    async def listen(self, channel):
+    async def listen(self, channel=None, subscription=None):
         try:
-            sub = self._subscribe(channel)
+            sub = subscription or self.subscribe(channel)
             while True:
-                try:
-                    data = await sub._queue.get()
-                    yield data
-                except asyncio.CancelledError:
-                    break
+                data = await sub._queue.get()
+                yield data
+        except asyncio.CancelledError:
+            pass
         finally:
-            self._unsubscribe(channel, sub)
+            subscription or self.unsubscribe(channel, sub)
+
+    async def receive(self, channel=None, subscription=None):
+        sub = subscription or self.subscribe(channel)
+        try:
+            data = await sub._queue.get()
+        except asyncio.CancelledError:
+            data = None
+        finally:
+            subscription or self.unsubscribe(channel, sub)
+        return data
 
     def cancel(self, sub):
         sub._task.cancel()
@@ -45,10 +54,10 @@ class Broker:
     def get_subscription_count(self, channel):
         return len(self._subscriptions[channel])
 
-    def _subscribe(self, channel):
+    def subscribe(self, channel):
         sub = Subscription()
         self._subscriptions[channel].append(sub)
         return sub
 
-    def _unsubscribe(self, channel, sub):
+    def unsubscribe(self, channel, sub):
         self._subscriptions[channel].remove(sub)

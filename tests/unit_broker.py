@@ -19,9 +19,31 @@ async def broker():
 
 class TestBroker:
     async def test_subscribe_unsubscribe(self, broker):
-        sub = broker._subscribe("abcd")
+        sub = broker.subscribe("abcd")
         assert broker.get_subscription_count("abcd") == 1
-        broker._unsubscribe("abcd", sub)
+        broker.unsubscribe("abcd", sub)
+        assert broker.get_subscription_count("abcd") == 0
+
+    async def test_publish_receive(self, broker):
+        async def publish():
+            await asyncio.sleep(0.01)
+            await broker.publish("abcd", 1234)
+
+        asyncio.create_task(publish())
+        msg = await broker.receive("abcd")
+        assert msg == 1234
+        assert broker.get_subscription_count("abcd") == 0
+
+    async def test_receive_cancel(self, broker):
+        async def cancel():
+            await asyncio.sleep(0.01)
+            sub = broker._subscriptions["abcd"][0]
+            broker.cancel(sub)
+            await broker.publish("abcd", 1234)
+
+        asyncio.create_task(cancel())
+        msg = await broker.receive(channel="abcd")
+        assert msg == None
         assert broker.get_subscription_count("abcd") == 0
 
     async def test_listen_publish(self, broker):
@@ -61,6 +83,8 @@ class TestBroker:
                 pass
 
         asyncio.create_task(listen())
+        await asyncio.sleep(0.01)
         await broker.shutdown()
+        await asyncio.sleep(0.01)
 
         assert broker.get_subscription_count("abcd") == 0
