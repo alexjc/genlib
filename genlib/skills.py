@@ -8,5 +8,11 @@ class BaseSkill:
     inputs = []
     outputs = []
 
+    async def on_initialize(self):
+        pass
+
+    async def on_shutdown(self):
+        pass
+
     async def process(self):
         raise NotImplementedError
