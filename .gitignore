@@ -2,12 +2,14 @@
 __pycache__/
 *.py[cod]
 
-# Distribution / packaging / environments.
+# Distribution / packaging / build.
+htmlcov/
+.coverage
 *.egg-info/
 build/
 dist/
 sdist/
-.venv/
 
-# Code editors.
-.vscode
+# Code editors / environment.
+.venv/
+.vscode/
