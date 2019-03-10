@@ -5,6 +5,7 @@ import asyncio
 import pathlib
 import tempfile
 
+from genlib.skills import BaseSkill
 from genlib.registry import LocalRegistry, FileSystemWatcher
 
 
@@ -69,6 +70,17 @@ class TestLocalRegistry:
         assert "myskill.py" in list(local_registry.modules.keys())[0]
         assert len(local_registry.list_skills_schema()) == 1
         assert local_registry.find_skill_schema("myskill.py:MySkill") is not None
+
+    async def test_load_folder_construct_skill(self, local_registry, temporary_folder):
+        open(f"{temporary_folder}/myskill.py", "w").write(
+            "import genlib.skills as s\nclass MySkill(s.BaseSkill): pass"
+        )
+        local_registry.load_folder(temporary_folder)
+
+        schema = local_registry.find_skill_schema("myskill.py:MySkill")
+        skill = local_registry.construct(schema)
+        assert isinstance(skill, BaseSkill)
+        assert skill.__class__.__name__ == "MySkill"
 
     async def test_load_folder_relative_import(self, local_registry, temporary_folder):
         open(f"{temporary_folder}/helper.py", "w").write("A=456")
