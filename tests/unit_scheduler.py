@@ -66,6 +66,19 @@ class TestScheduleSingleTask:
             assert result == {"test": i * 123}
         await scheduler.halt(fake_skill)
 
+    async def test_correctly_ticks_calls_observer(self, scheduler, fake_skill):
+        async def observe(skill, result):
+            outputs.append((skill, result))
+
+        outputs = []
+        scheduler.on_compute = observe
+        await scheduler.spawn(fake_skill)
+        for i in range(1, 5):
+            await scheduler.tick(fake_skill)
+            assert outputs[-1] == (fake_skill, {"test": i * 123})
+
+        assert len(outputs) == 4
+
     async def test_spawn_correctly_calls_on_initialize(self, scheduler, fake_skill):
         assert not hasattr(fake_skill, "counter")
         await scheduler.spawn(fake_skill)

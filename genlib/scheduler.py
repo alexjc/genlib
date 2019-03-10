@@ -41,21 +41,24 @@ class Scheduler:
     """Handles the execution of recipes, as a set of asynchronous coroutines.
     """
 
-    def __init__(self):
+    def __init__(self, on_compute=None):
         self._runners = {}
+        self.on_compute = on_compute
 
     async def spawn(self, skill):
         runner = Runner(skill)
         await runner.start()
         self._runners[id(skill)] = runner
 
-    async def tick(self, skill):
+    async def tick(self, skill, output=None):
         runner = self._runners[id(skill)]
         async for result in runner.generator:
             if isinstance(result, Exception):
                 raise result
-            else:
-                return result
+
+            if self.on_compute is not None:
+                await self.on_compute(skill, result)
+            return result
 
     def list_active_skills(self):
         """Reverse iterator over the skills that are currently active.
