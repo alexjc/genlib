@@ -19,7 +19,8 @@ codecov = "^2.0"
 pytest-xdist = "^1.26"
 
 [tool.poetry.scripts]
-tests = "tests:main"
+test = "tests:pytest"
+lint = "tests:pylint"
 example = "examples:main"
 
 [build-system]
