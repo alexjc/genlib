@@ -22,8 +22,6 @@ class SkillOutput(Variable):
     """Schema describing a single output of a `Skill`.
     """
 
-    pass
-
 
 class SkillInput(Variable):
     """Schema describing a single input of a `Skill`.

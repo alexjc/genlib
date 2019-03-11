@@ -1,6 +1,10 @@
 # genlib — Copyright (c) 2019, Alex J. Champandard. Code licensed under the GNU AGPLv3.
 
-from .schema import SkillInput as Input, SkillOutput as Output
+from .schema import SkillInput, SkillOutput
+
+
+Input = SkillInput
+Output = SkillOutput
 
 
 class BaseSkill:

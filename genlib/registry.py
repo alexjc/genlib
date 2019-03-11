@@ -9,7 +9,8 @@ import importlib.util
 import watchdog.events
 import watchdog.observers
 
-from . import skills, schema
+import genlib.skills
+import genlib.schema
 
 __all__ = ["LocalRegistry", "FileSystemWatcher"]
 
@@ -17,8 +18,8 @@ __all__ = ["LocalRegistry", "FileSystemWatcher"]
 def is_python_skill(obj):
     return (
         inspect.isclass(obj)
-        and issubclass(obj, skills.BaseSkill)
-        and obj not in skills.__dict__.values()
+        and issubclass(obj, genlib.skills.BaseSkill)
+        and obj not in genlib.skills.__dict__.values()
     )
 
 
@@ -84,7 +85,7 @@ class LocalRegistry:
             if not is_python_skill(obj):
                 continue
             uri = f"{path}:{key}"
-            scm = schema.SkillSchema(uri, inputs=obj.inputs, outputs=obj.outputs)
+            scm = genlib.schema.SkillSchema(uri, inputs=obj.inputs, outputs=obj.outputs)
             self.schemas[uri] = scm
             self.classes[uri] = obj
 
@@ -97,10 +98,10 @@ class LocalRegistry:
 
     def _walk_folder(self, path, predicate):
         for root, _, files in os.walk(path):
-            for f in files:
-                filename = os.path.join(root, f)
-                if predicate(filename):
-                    yield filename
+            for filename in files:
+                full_path = os.path.join(root, filename)
+                if predicate(full_path):
+                    yield full_path
 
 
 class FileSystemWatcher:

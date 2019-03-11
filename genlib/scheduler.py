@@ -2,8 +2,6 @@
 
 import asyncio
 
-from genlib.skills import BaseSkill
-
 
 class Runner:
     """Manages the execution of a Skill until it has completed, calling initialize
@@ -16,14 +14,14 @@ class Runner:
         self.generator = self.run()
 
     async def run(self):
-        yield (await self.skill.on_initialize())
+        yield await self.skill.on_initialize()
         try:
             while not self.done:
-                yield (await self.skill.process())
-        except Exception as exc:
+                yield await self.skill.process()
+        except Exception as exc:  # pylint: disable=broad-except
             yield exc
         finally:
-            yield (await self.skill.on_shutdown())
+            yield await self.skill.on_shutdown()
 
     async def start(self):
         # Wait for `on_initialize` message from run().
@@ -50,12 +48,11 @@ class Scheduler:
         await runner.start()
         self._runners[id(skill)] = runner
 
-    async def tick(self, skill, output=None):
+    async def tick(self, skill):
         runner = self._runners[id(skill)]
         async for result in runner.generator:
             if isinstance(result, Exception):
                 raise result
-
             if self.on_compute is not None:
                 await self.on_compute(skill, result)
             return result

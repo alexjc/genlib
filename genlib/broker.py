@@ -6,9 +6,10 @@ import collections
 
 
 class Subscription:
-    def __init__(self):
-        self._queue = asyncio.Queue()
-        self._task = asyncio.current_task()
+    def __init__(self, channel):
+        self.channel = channel
+        self.queue = asyncio.Queue()
+        self.task = asyncio.current_task()
 
 
 class Broker:
@@ -20,31 +21,32 @@ class Broker:
 
     async def publish(self, channel, message):
         for sub in self._subscriptions[channel]:
-            sub._queue.put_nowait(message)
+            sub.queue.put_nowait(message)
 
     async def listen(self, channel=None, subscription=None):
         try:
             sub = subscription or self.subscribe(channel)
             while True:
-                data = await sub._queue.get()
+                data = await sub.queue.get()
                 yield data
         except asyncio.CancelledError:
             pass
         finally:
-            subscription or self.unsubscribe(channel, sub)
+            _ = subscription or self.unsubscribe(channel, sub)
 
     async def receive(self, channel=None, subscription=None):
         sub = subscription or self.subscribe(channel)
         try:
-            data = await sub._queue.get()
+            data = await sub.queue.get()
         except asyncio.CancelledError:
             data = None
         finally:
-            subscription or self.unsubscribe(channel, sub)
+            _ = subscription or self.unsubscribe(channel, sub)
         return data
 
     def cancel(self, sub):
-        sub._task.cancel()
+        assert sub in self._subscriptions[sub.channel], "Subscription not found."
+        sub.task.cancel()
 
     async def shutdown(self):
         for sub in itertools.chain(*self._subscriptions.values()):
@@ -55,7 +57,7 @@ class Broker:
         return len(self._subscriptions[channel])
 
     def subscribe(self, channel):
-        sub = Subscription()
+        sub = Subscription(channel)
         self._subscriptions[channel].append(sub)
         return sub
 
