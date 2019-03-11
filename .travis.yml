@@ -13,7 +13,8 @@ install:
     - pip install poetry
     - poetry update
 script:
-    - poetry run tests
+    - poetry run test
+    - poetry run lint
 before_cache:
     - if [ -f poetry.lock ]; then cp poetry.lock $HOME/.cache/pip/; fi
 after_success:
