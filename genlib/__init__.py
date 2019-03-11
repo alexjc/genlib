@@ -8,4 +8,4 @@ if not hasattr(asyncio, "current_task"):
 
 # Backwards compatibility with Python 3.6 for `create_task`.
 if not hasattr(asyncio, "create_task"):
-    asyncio.create_task = asyncio.get_event_loop().create_task
+    asyncio.create_task = lambda t: asyncio.get_event_loop().create_task(t)
