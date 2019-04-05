@@ -36,6 +36,21 @@ class TestFileSystemWatcher:
 
         watcher.shutdown()
 
+    async def test_exception(self, caplog):
+        def throw(*_):
+            raise NotImplementedError
+
+        watcher = FileSystemWatcher(callback=throw)
+        watcher.monitor("tests")
+        await asyncio.sleep(1.0)
+
+        pathlib.Path("tests/__init__.py").touch()
+        await asyncio.sleep(1.0)
+
+        assert 'Error while reloading "tests/__init__.py".' in caplog.text
+        assert watcher.thread.is_alive()
+        watcher.shutdown()
+
 
 @pytest.fixture
 def local_registry():

@@ -4,6 +4,7 @@ import os
 import sys
 import hashlib
 import inspect
+import logging
 import importlib.util
 
 import watchdog.events
@@ -54,6 +55,8 @@ class LocalRegistry:
         return self.classes[schema.uri]()
 
     def find_skill_schema(self, uri):
+        if uri not in self.schemas:
+            print(list(self.schemas.keys()))
         return self.schemas[uri]
 
     def list_skills_schema(self):
@@ -84,10 +87,12 @@ class LocalRegistry:
             obj = getattr(module, key)
             if not is_python_skill(obj):
                 continue
-            uri = f"{path}:{key}"
-            scm = genlib.schema.SkillSchema(uri, inputs=obj.inputs, outputs=obj.outputs)
-            self.schemas[uri] = scm
-            self.classes[uri] = obj
+            self._load_from_class(uri=f"{path}:{key}", obj=obj)
+
+    def _load_from_class(self, uri, obj):
+        scm = genlib.schema.SkillSchema(uri, inputs=obj.inputs, outputs=obj.outputs)
+        self.schemas[uri] = scm
+        self.classes[uri] = obj
 
     def _import_file(self, name, path):
         module_spec = importlib.util.spec_from_file_location(name, path)
@@ -115,8 +120,9 @@ class FileSystemWatcher:
         self.thread.start()
 
     def shutdown(self):
-        self.thread.stop()
-        self.thread.join()
+        if self.thread.is_alive():
+            self.thread.stop()
+            self.thread.join()
 
     def monitor(self, root):
         observer = FolderObserver(lambda path: self.callback(root, path))
@@ -130,8 +136,12 @@ class FolderObserver(watchdog.events.FileSystemEventHandler):
 
     def __init__(self, callback):
         super(FolderObserver, self).__init__()
+        self.log = logging.getLogger("genlib.registry")
         self.callback = callback
 
     def on_modified(self, event):
         if not event.is_directory and is_python_source(event.src_path):
-            self.callback(event.src_path)
+            try:
+                self.callback(event.src_path)
+            except:
+                self.log.exception(f'Error while reloading "{event.src_path}".')
