@@ -9,14 +9,16 @@ license = "AGPL-3.0"
 python = "^3.6"
 aiohttp = "^3.5"
 watchdog = "^0.9.0"
+pytest-mock = "^1.10"
 
 [tool.poetry.dev-dependencies]
 black = "^18.9b0"
 pylint = "^2.3"
+pytest = "^4.4"
 pytest-cov = "^2.6"
 pytest-asyncio = "^0.10.0"
-codecov = "^2.0"
 pytest-xdist = "^1.26"
+codecov = "^2.0"
 
 [tool.poetry.scripts]
 test = "tests:pytest"
