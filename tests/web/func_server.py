@@ -14,27 +14,29 @@ pytestmark = pytest.mark.asyncio
 
 
 class FakeSession:
-    def __init__(self, websock):
+    def __init__(self, websock, **kwargs):
         self.websock = websock
         self.messages = []
 
     async def run(self):
-        async for msg in self.websock:
-            cmd = msg.json()
-            if cmd == "assert":
+        async for data in self.websock:
+            msg = data.json()
+            if msg == "assert":
                 assert False
-            if cmd == "break":
+            if msg == "break":
                 break
+            self.messages.append(msg)
 
 
 @pytest.fixture()
 async def server():
-    server = Server(make_session=FakeSession)
+    server = Server()
+    server.make_session = FakeSession
 
     runner = aiohttp.test_utils.TestServer(server, host="127.0.0.1")
     await runner.start_server()
 
-    server.url = f"http://{runner.host}:{runner.port}"
+    server.url = f"ws://{runner.host}:{runner.port}/io"
     yield server
 
     await runner.close()
@@ -66,11 +68,15 @@ class TestServerSingleClient:
             await asyncio.sleep(0.01)
             assert len(server.sessions) == 0
 
+    async def test_default_session(self):
+        server = Server()
+        session = server.make_session(websock=None, interpreter=None, listing={})
+        assert hasattr(session, "run")
+
 
 class TestServerUnderLoad:
     async def _run_client(self, url):
-        client = aiohttp.ClientSession()
-        try:
+        async with aiohttp.ClientSession() as client:
             async with client.ws_connect(url) as conn:
                 while not conn.closed:
                     cmd = random.choice(["close", "unknown", "assert", "break"])
@@ -78,8 +84,6 @@ class TestServerUnderLoad:
                         await conn.close()
                     else:
                         await conn.send_json(cmd)
-        finally:
-            await client.close()
 
     async def test_thousand_connections(self, server):
         tasks = [asyncio.create_task(self._run_client(server.url)) for _ in range(1000)]
