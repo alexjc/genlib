@@ -11,13 +11,19 @@ class Runner:
     def __init__(self, skill):
         self.skill = skill
         self.done = False
-        self.generator = self.run()
+        self.queue = asyncio.Queue()
+        self._generator = self.run()
+
+    def step(self, function):
+        self.queue.put_nowait(function)
+        return self._generator
 
     async def run(self):
         yield await self.skill.on_initialize()
         try:
             while not self.done:
-                yield await self.skill.process()
+                function = await self.queue.get()
+                yield await function(self.skill)
         except Exception as exc:  # pylint: disable=broad-except
             yield exc
         finally:
@@ -25,13 +31,13 @@ class Runner:
 
     async def start(self):
         # Wait for `on_initialize` message from run().
-        async for _ in self.generator:
+        async for _ in self._generator:
             break
 
     async def stop(self):
         self.done = True
         # Pause until `on_shutdown` is done from run().
-        async for _ in self.generator:
+        async for _ in self._generator:
             break
 
 
@@ -48,9 +54,9 @@ class Scheduler:
         await runner.start()
         self._runners[id(skill)] = runner
 
-    async def tick(self, skill):
+    async def step(self, skill, function):
         runner = self._runners[id(skill)]
-        async for result in runner.generator:
+        async for result in runner.step(function):
             if isinstance(result, Exception):
                 raise result
             if self.on_compute is not None:

@@ -2,11 +2,13 @@
 
 import pytest
 
-from genlib.skills import BaseSkill
+from genlib.skills import Skill, Output
 from genlib.scheduler import Scheduler
 
 
-class FakeSkill(BaseSkill):
+class FakeSkill(Skill):
+    outputs = [Output("test", spec="int")]
+
     async def on_initialize(self):
         self.counter = 0
 
@@ -18,7 +20,9 @@ class FakeSkill(BaseSkill):
         self.counter = -1
 
 
-class ProblemSkill(BaseSkill):
+class ProblemSkill(Skill):
+    outputs = [Output("wrong", spec="float")]
+
     async def process(self):
         raise NotImplementedError
 
@@ -56,13 +60,13 @@ class TestScheduleSingleTask:
 
     async def test_unknown_tick_throws_exception(self, scheduler, fake_skill):
         with pytest.raises(KeyError):
-            await scheduler.tick(fake_skill)
+            await scheduler.step(fake_skill, FakeSkill.process)
         assert fake_skill not in scheduler.list_active_skills()
 
     async def test_correctly_ticks_multiple_times(self, scheduler, fake_skill):
         await scheduler.spawn(fake_skill)
         for i in range(1, 10):
-            result = await scheduler.tick(fake_skill)
+            result = await scheduler.step(fake_skill, FakeSkill.process)
             assert result == {"test": i * 123}
         await scheduler.halt(fake_skill)
 
@@ -74,7 +78,7 @@ class TestScheduleSingleTask:
         scheduler.on_compute = observe
         await scheduler.spawn(fake_skill)
         for i in range(1, 5):
-            await scheduler.tick(fake_skill)
+            await scheduler.step(fake_skill, FakeSkill.process)
             assert outputs[-1] == (fake_skill, {"test": i * 123})
 
         assert len(outputs) == 4
@@ -99,4 +103,4 @@ class TestSchedulerErrorHandling:
     async def test_exception_is_caught(self, scheduler, problem_skill):
         await scheduler.spawn(problem_skill)
         with pytest.raises(NotImplementedError):
-            await scheduler.tick(problem_skill)
+            await scheduler.step(problem_skill, ProblemSkill.process)
