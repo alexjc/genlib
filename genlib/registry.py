@@ -143,5 +143,5 @@ class FolderObserver(watchdog.events.FileSystemEventHandler):
         if not event.is_directory and is_python_source(event.src_path):
             try:
                 self.callback(event.src_path)
-            except:
-                self.log.exception(f'Error while reloading "{event.src_path}".')
+            except Exception:  # pylint: disable=broad-except
+                self.log.exception('Error while reloading "%s".', event.src_path)

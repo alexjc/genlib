@@ -13,6 +13,13 @@ from genlib.registry import LocalRegistry, FileSystemWatcher
 pytestmark = pytest.mark.asyncio
 
 
+FAKE_SKILL_CODE = """
+class MySkill(s.Skill):
+    outputs = [s.Output('o', spec='str')]
+    async def compute(self): pass
+"""
+
+
 class TestFileSystemWatcher:
     async def test_start_stop(self):
         watcher = FileSystemWatcher(callback=None)
@@ -78,7 +85,7 @@ class TestLocalRegistry:
 
     async def test_load_folder_with_one_skill(self, local_registry, temporary_folder):
         open(f"{temporary_folder}/myskill.py", "w").write(
-            "import genlib.skills as s\nclass MySkill(s.BaseSkill): pass"
+            "import genlib.skills as s\n" + FAKE_SKILL_CODE
         )
         local_registry.load_folder(temporary_folder)
         assert len(local_registry.modules) == 1
@@ -88,7 +95,7 @@ class TestLocalRegistry:
 
     async def test_load_folder_construct_skill(self, local_registry, temporary_folder):
         open(f"{temporary_folder}/myskill.py", "w").write(
-            "import genlib.skills as s\nclass MySkill(s.BaseSkill): pass"
+            "import genlib.skills as s\n" + FAKE_SKILL_CODE
         )
         local_registry.load_folder(temporary_folder)
 
@@ -113,6 +120,6 @@ class TestLocalRegistry:
         await asyncio.sleep(1.0)
 
         with open(f"{temporary_folder}/myskill.py", "w+") as f:
-            f.write("import genlib.skills as s\nclass MySkill(s.BaseSkill): pass")
+            f.write("import genlib.skills as s\n" + FAKE_SKILL_CODE)
         await asyncio.sleep(1.0)
         assert len(local_registry.list_skills_schema()) == 1
