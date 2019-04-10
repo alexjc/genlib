@@ -1,15 +1,58 @@
 # genlib — Copyright (c) 2019, Alex J. Champandard. Code licensed under the GNU AGPLv3.
 
 import asyncio
-import itertools
 import collections
 
 
-class Subscription:
+class CallbackSubscription:
+    def __init__(self, channel, callback):
+        self.channel = channel
+        self._callback = callback
+
+    async def process(self, message):
+        await self._callback(self.channel.key, message)
+
+    def cancel(self):
+        pass
+
+
+class QueueSubscription:
     def __init__(self, channel):
         self.channel = channel
-        self.queue = asyncio.Queue()
-        self.task = asyncio.current_task()
+        self._queue = asyncio.Queue()
+
+    async def process(self, message):
+        self._queue.put_nowait(message)
+
+    async def get(self):
+        if self._queue.qsize() == 0:
+            await self.channel.provide()
+        return await self._queue.get()
+
+    def cancel(self):
+        self._queue.put_nowait(None)
+
+
+Provider = collections.namedtuple("Provider", ["function", "extra"])
+
+
+class Channel:
+    def __init__(self, key):
+        self.key = key
+        self.provider: Provider = None
+        self.subscriptions = []
+
+    async def provide(self):
+        if self.provider is None:
+            return
+
+        await self.provider.function(self.key, **self.provider.extra)
+
+    def close(self):
+        for sub in self.subscriptions:
+            sub.cancel()
+
+        # Each of the listen() tasks unsubscribe themselves automatically.
 
 
 class Broker:
@@ -17,49 +60,69 @@ class Broker:
     """
 
     def __init__(self):
-        self._subscriptions = collections.defaultdict(list)
+        self._channels = {}
 
-    async def publish(self, channel, message):
-        for sub in self._subscriptions[channel]:
-            sub.queue.put_nowait(message)
+    def create_channel(self, key):
+        assert key not in self._channels
+        self._channels[key] = Channel(key)
 
-    async def listen(self, channel=None, subscription=None):
+    def destroy_channel(self, key):
+        self._channels[key].close()
+        del self._channels[key]
+
+    def get_channel(self, key):
+        assert key in self._channels
+        return self._channels[key]
+
+    def provide(self, channel_key, function, extra: dict = None):
+        channel = self.get_channel(channel_key)
+        channel.provider = Provider(function, extra or {})
+
+    def register(self, channel_key, callback):
+        channel = self.get_channel(channel_key)
+        sub = CallbackSubscription(channel, callback)
+        channel.subscriptions.append(sub)
+        return sub
+
+    def deregister(self, channel_key, callback):
+        channel = self.get_channel(channel_key)
+        for sub in channel.subscriptions:
+            if getattr(sub, "_callback", None) == callback:
+                channel.subscriptions.remove(sub)
+                break
+
+    async def publish(self, channel_key, message):
+        channel = self.get_channel(channel_key)
+        assert len(channel.subscriptions) > 0
+
+        for sub in channel.subscriptions:
+            await sub.process(message)
+
+    async def receive(self, channel_key, subscription=None):
         try:
-            sub = subscription or self.subscribe(channel)
-            while True:
-                data = await sub.queue.get()
-                yield data
-        except asyncio.CancelledError:
-            pass
-        finally:
-            _ = subscription or self.unsubscribe(channel, sub)
-
-    async def receive(self, channel=None, subscription=None):
-        sub = subscription or self.subscribe(channel)
-        try:
-            data = await sub.queue.get()
+            sub = subscription or self.subscribe(channel_key)
+            data = await sub.get()
         except asyncio.CancelledError:
             data = None
         finally:
-            _ = subscription or self.unsubscribe(channel, sub)
+            _ = subscription or self.unsubscribe(channel_key, sub)
         return data
 
-    def cancel(self, sub):
-        assert sub in self._subscriptions[sub.channel], "Subscription not found."
-        sub.task.cancel()
-
     async def shutdown(self):
-        for sub in itertools.chain(*self._subscriptions.values()):
-            self.cancel(sub)
-        # Each of the listen() tasks should unsubscribe itself automatically.
+        for channel in self._channels.values():
+            channel.close()
+        self._channels = {}
 
-    def get_subscription_count(self, channel):
-        return len(self._subscriptions[channel])
+    def get_subscription_count(self, channel_key):
+        channel = self.get_channel(channel_key)
+        return len(channel.subscriptions)
 
-    def subscribe(self, channel):
-        sub = Subscription(channel)
-        self._subscriptions[channel].append(sub)
+    def subscribe(self, channel_key):
+        channel = self.get_channel(channel_key)
+        sub = QueueSubscription(channel)
+        channel.subscriptions.append(sub)
         return sub
 
-    def unsubscribe(self, channel, sub):
-        self._subscriptions[channel].remove(sub)
+    def unsubscribe(self, channel_key, sub):
+        channel = self.get_channel(channel_key)
+        channel.subscriptions.remove(sub)

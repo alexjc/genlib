@@ -13,11 +13,18 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture
 async def broker():
     b = Broker()
+    b.create_channel("abcd")
     yield b
     await b.shutdown()
 
+    for ch in b._channels.values():
+        assert len(ch.subscriptions) == 0
 
-class TestBroker:
+
+class TestBrokerPassive:
+    async def test_destroy_channel(self, broker):
+        broker.destroy_channel("abcd")
+
     async def test_subscribe_unsubscribe(self, broker):
         sub = broker.subscribe("abcd")
         assert broker.get_subscription_count("abcd") == 1
@@ -37,54 +44,54 @@ class TestBroker:
     async def test_receive_cancel(self, broker):
         async def cancel():
             await asyncio.sleep(0.01)
-            sub = broker._subscriptions["abcd"][0]
-            broker.cancel(sub)
+            sub = broker._channels["abcd"].subscriptions[0]
+            sub.cancel()
             await broker.publish("abcd", 1234)
 
         asyncio.create_task(cancel())
-        msg = await broker.receive(channel="abcd")
+        msg = await broker.receive(channel_key="abcd")
         assert msg == None
         assert broker.get_subscription_count("abcd") == 0
 
-    async def test_listen_publish(self, broker):
-        async def publish():
-            await asyncio.sleep(0.01)
-            await broker.publish("abcd", 1234)
-
-        asyncio.create_task(publish())
-
-        async for msg in broker.listen("abcd"):
-            assert msg == 1234
-            assert broker.get_subscription_count("abcd") == 1
-            break
-
-        await asyncio.sleep(0.01)
-        assert broker.get_subscription_count("abcd") == 0
-
-    async def test_listen_cancel(self, broker):
-        async def cancel():
-            await asyncio.sleep(0.01)
-            sub = broker._subscriptions["abcd"][0]
-            broker.cancel(sub)
-            await broker.publish("abcd", 1234)
-
-        asyncio.create_task(cancel())
-
-        cancelled = None
-        async for _ in broker.listen("abcd"):
-            assert False, "The subscription was not cancelled."
-        else:
-            cancelled = True
-        assert cancelled is True
-
     async def test_shutdown_unsubscribes(self, broker):
         async def listen():
-            async for _ in broker.listen("abcd"):
-                pass
+            await broker.receive("abcd")
 
-        asyncio.create_task(listen())
+        task = asyncio.create_task(listen())
         await asyncio.sleep(0.01)
         await broker.shutdown()
         await asyncio.sleep(0.01)
 
-        assert broker.get_subscription_count("abcd") == 0
+        with pytest.raises(AssertionError):
+            assert broker.get_subscription_count("abcd") == 0
+        assert task.exception()
+
+
+class TestBrokerActive:
+    async def test_provides(self, broker):
+        async def compute(channel):
+            await broker.publish(channel, 1234)
+
+        broker.provide("abcd", compute)
+        msg = await broker.receive(channel_key="abcd")
+        assert msg == 1234
+
+    async def test_callback_cancel(self, broker):
+        async def callback(channel, message):
+            pass
+
+        sub = broker.register("abcd", callback)
+        sub.cancel()
+
+        broker.deregister("abcd", callback)
+
+    async def test_callback(self, broker):
+        async def callback(channel, message):
+            data.append((channel, message))
+
+        data = []
+        broker.register("abcd", callback)
+        await broker.publish("abcd", 5678)
+        assert data == [("abcd", 5678)]
+
+        broker.deregister("abcd", callback)
