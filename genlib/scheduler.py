@@ -10,35 +10,37 @@ class Runner:
 
     def __init__(self, skill):
         self.skill = skill
-        self.done = False
-        self.queue = asyncio.Queue()
-        self._generator = self.run()
+        self.request_queue = asyncio.Queue()
+        self.result_queue = asyncio.Queue()
+        self._task = None
 
-    def step(self, function):
-        self.queue.put_nowait(function)
-        return self._generator
+    async def step(self, function):
+        self.request_queue.put_nowait(function)
+        return await self.result_queue.get()
 
     async def run(self):
-        yield await self.skill.on_initialize()
+        await self.skill.on_initialize()
+        self.result_queue.put_nowait("initialize")
         try:
-            while not self.done:
-                function = await self.queue.get()
-                yield await function(self.skill)
+            while True:
+                function = await self.request_queue.get()
+                result = await function(self.skill)
+                await self.result_queue.put(result)
+        except asyncio.CancelledError:
+            pass
         except Exception as exc:  # pylint: disable=broad-except
-            yield exc
+            self.result_queue.put_nowait(exc)
         finally:
-            yield await self.skill.on_shutdown()
+            await self.skill.on_shutdown()
+            self.result_queue.put_nowait("shutdown")
 
     async def start(self):
-        # Wait for `on_initialize` message from run().
-        async for _ in self._generator:
-            break
+        self._task = asyncio.create_task(self.run())
+        await self.result_queue.get()
 
     async def stop(self):
-        self.done = True
-        # Pause until `on_shutdown` is done from run().
-        async for _ in self._generator:
-            break
+        self._task.cancel()
+        await self.result_queue.get()
 
 
 class Scheduler:
@@ -56,12 +58,12 @@ class Scheduler:
 
     async def step(self, skill, function):
         runner = self._runners[id(skill)]
-        async for result in runner.step(function):
-            if isinstance(result, Exception):
-                raise result
-            if self.on_compute is not None:
-                await self.on_compute(skill, result)
-            return result
+        result = await runner.step(function)
+        if isinstance(result, Exception):
+            raise result
+        if self.on_compute is not None:
+            await self.on_compute(skill, result)
+        return result
 
     def list_active_skills(self):
         """Reverse iterator over the skills that are currently active.
