@@ -41,6 +41,12 @@ class SkillSchema:
         self.inputs = inputs
         self.outputs = outputs
 
+    def find_input(self, name):
+        for i in self.inputs:
+            if name == i.name:
+                return i
+        return None
+
     def as_dict(self):
         return dict(
             uri=self.uri,

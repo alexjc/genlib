@@ -39,3 +39,15 @@ class TestSchemaDefinition:
         assert len(data["inputs"]) == 1
         assert len(data["outputs"]) == 1
         assert data["uri"] == "test.py:Example"
+
+    def test_find_empty(self):
+        schema = SkillSchema("test.py:Example", inputs=[], outputs=[])
+        assert schema.find_input("test") is None
+
+    def test_find_by_name(self):
+        schema = SkillSchema(
+            "test.py:Example",
+            inputs=[SkillInput("pi", spec="float", defaults=[3.14])],
+            outputs=[],
+        )
+        assert schema.find_input("pi").defaults[0] == 3.14
