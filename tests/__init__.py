@@ -8,7 +8,7 @@ def pytest():
     """
     from pytest import main
 
-    sys.exit(main(["-c", "tests/pytest.ini"]))
+    sys.exit(main(["-c", "tests/pytest.ini"] + sys.argv[1:]))
 
 
 def pylint():
@@ -16,4 +16,4 @@ def pylint():
     """
     from pylint.lint import Run as main
 
-    sys.exit(main(["genlib", "--rcfile", "tests/pylint.ini"]))
+    sys.exit(main(["genlib", "--rcfile", "tests/pylint.ini"] + sys.argv[1:]))
