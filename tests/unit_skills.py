@@ -37,8 +37,8 @@ class TestConfiguration:
                 pass
 
         skill = ReactiveSkill()
-        assert len(skill._watching["value"]) == 1
-        assert skill._watching["value"][0] == ReactiveSkill.compute
+        assert len(skill.methods_watching["value"]) == 1
+        assert skill.methods_watching["value"] == [ReactiveSkill.compute]
 
     def test_skill_provides_decorator(self):
         class AnnotatedSkill(Skill):
@@ -49,8 +49,8 @@ class TestConfiguration:
                 pass
 
         skill = AnnotatedSkill()
-        assert "number" in skill._provides
-        assert skill._provides["number"] == AnnotatedSkill.do
+        assert "number" in skill.method_providing
+        assert skill.method_providing["number"] == AnnotatedSkill.do
 
     @pytest.mark.asyncio
     async def test_base_skill_clean_initialize_shutdown(self):

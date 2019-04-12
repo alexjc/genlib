@@ -24,31 +24,31 @@ class SkillConfigurator(type):
         assert len({i.name for i in inputs} & {o.name for o in outputs}) == 0
 
     def setup_provides(cls, attributes: dict):
-        provides_map = {}
+        method_providing = {}
         functions = [f for f in attributes.values() if is_method(f)]
 
         for obj in functions:
             config = getattr(obj, CONFIG_ATTRIBUTE, {})
             for key in config.get("provides", []):
-                assert key not in provides_map
-                provides_map[key] = obj
+                assert key not in method_providing
+                method_providing[key] = obj
 
-        found = set(provides_map.keys())
+        found = set(method_providing.keys())
         outputs = {o.name for o in attributes.get("outputs", [])}
         for key in outputs - found:
-            assert len(functions) > 0, f"No class methods found for {key}."
-            assert len(functions) == 1, f"Ambiguous method for providing {key}."
-            provides_map[key] = functions[0]
-        attributes["_provides"] = provides_map
+            assert len(functions) > 0, f"No class methods found for `{key}`."
+            assert len(functions) == 1, f"Ambiguous method for providing `{key}`."
+            method_providing[key] = functions[0]
+        attributes["method_providing"] = method_providing
 
     def setup_watching(cls, attributes: dict):
-        watching_map = {}
+        methods_watching = {}
         for obj in [f for f in attributes.values() if is_method(f)]:
             config = getattr(obj, CONFIG_ATTRIBUTE, {})
             for key in config.get("watching", []):
-                watching_map.setdefault(key, [])
-                watching_map[key].append(obj)
-        attributes["_watching"] = watching_map
+                methods_watching.setdefault(key, [])
+                methods_watching[key].append(obj)
+        attributes["methods_watching"] = methods_watching
 
 
 def is_method(obj):

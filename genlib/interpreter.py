@@ -43,20 +43,20 @@ class Interpreter:
         await self.scheduler.spawn(skill)
 
     def _setup_provider(self, skill, key, channel=None):
-        func = skill._provides[key]
+        func = skill.method_providing[key]
         self.broker.register_provider(
             channel or (skill, key), self._request_output, function=func, skill=skill
         )
 
     def _setup_watcher(self, skill, key):
-        if len(skill._watching.get(key, [])) > 0:
+        if len(skill.methods_watching.get(key, [])) > 0:
             self.broker.add_callback(
                 channel_key=(skill, key), callback=self._trigger_watching
             )
 
     async def _trigger_watching(self, channel, _):
         skill, key = channel
-        for function in skill._watching.get(key, []):
+        for function in skill.methods_watching.get(key, []):
             await self._request_output(skill=skill, function=function)
 
     async def _request_output(self, *, skill, function):
