@@ -9,9 +9,9 @@ from ..registry import LocalRegistry
 
 
 class Server(aiohttp.web.Application):
-    def __init__(self):
+    def __init__(self, registry=None):
         super(Server, self).__init__()
-        self.registry = LocalRegistry()
+        self.registry = registry or LocalRegistry()
         self.listing = {}
         self.sessions = []
 
@@ -35,15 +35,22 @@ class Server(aiohttp.web.Application):
         try:
             self.sessions.append(session)
             await session.run()
-        except asyncio.CancelledError:
-            pass
         finally:
-            self.sessions.remove(session)
             await session.shutdown()
+            self.sessions.remove(session)
 
-        if not websock.closed:
-            await websock.close()
         return websock
+
+    async def shutdown(self):
+        async def close(session):
+            await session.shutdown()
+            await session.websock.close(
+                code=aiohttp.WSCloseCode.GOING_AWAY, message="Server Shutdown"
+            )
+
+        if len(self.sessions) > 0:
+            await asyncio.wait([close(session) for session in self.sessions])
+        assert len(self.sessions) == 0
 
     def make_session(self, *args, **kwargs):
         return UserSession(*args, **kwargs)

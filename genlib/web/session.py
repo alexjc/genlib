@@ -12,6 +12,7 @@ class UserSession:
         self.websock = websock
         self.actor = actor
         self.skills = {}
+        self._tasks = []
 
     async def run(self):
         """Read messages from the client as they come in, and handle them in an
@@ -19,11 +20,14 @@ class UserSession:
         """
         async for msg in self.websock:
             if msg.type == aiohttp.web.WSMsgType.TEXT:
-                asyncio.create_task(self._process(msg.json()))
+                task = asyncio.create_task(self._process(msg.json()))
+                self._tasks.append(task)
             if msg.type == aiohttp.web.WSMsgType.CLOSE:
                 break
+        await asyncio.wait(self._tasks)
 
     async def shutdown(self):
+        assert len(self._tasks) == 0
         await self.actor.shutdown()
 
     async def _process(self, msg: dict):
@@ -34,6 +38,8 @@ class UserSession:
             await handler(msg)
         except Exception:  # pylint: disable=broad-except
             self.log.exception("Failed to handle request of type `%s`.", msg["type"])
+        finally:
+            self._tasks.remove(asyncio.current_task())
 
     async def handle_listing(self, _: dict):
         listing = self.actor.get_listing()
@@ -48,7 +54,8 @@ class UserSession:
         await self.websock.send_json({"type": "invoked", "uuid": msg["uuid"]})
 
     async def handle_revoke(self, msg: dict):
-        pass
+        skill = self.skills[msg["uuid"]]
+        await self.actor.revoke(skill)
 
     async def handle_push_input(self, msg: dict):
         skill = self.skills[msg["uuid"]]

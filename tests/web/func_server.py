@@ -7,6 +7,7 @@ import asyncio
 import aiohttp, aiohttp.web, aiohttp.test_utils
 
 from genlib.web.server import Server
+from genlib.registry import LocalRegistry
 
 
 # All the tests in this file can be treated as asynchronous.
@@ -26,6 +27,9 @@ class FakeSession:
             if msg == "break":
                 break
             self.messages.append(msg)
+
+    async def shutdown(self):
+        pass
 
 
 @pytest.fixture()
@@ -90,3 +94,14 @@ class TestServerUnderLoad:
         await asyncio.wait(tasks)
 
         assert len(server.sessions) == 0
+
+
+class TestExpose:
+    async def test_registry_loads(self, mocker, server):
+        server.registry = mocker.Mock(LocalRegistry)
+        server.load_skills("examples")
+        assert server.registry.load_folder.called == 1
+
+    async def test_expose_skill(self, server):
+        server.expose_skill("MyAlias", "test.py:MyFullSkill")
+        assert "MyAlias" in server.listing
