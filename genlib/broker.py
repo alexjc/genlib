@@ -33,7 +33,7 @@ class QueueSubscription:
         self._queue.put_nowait(None)
 
 
-Provider = collections.namedtuple("Provider", ["function", "extra"])
+Provider = collections.namedtuple("Provider", ["function", "args"])
 
 
 class Channel:
@@ -46,7 +46,7 @@ class Channel:
         if self.provider is None:
             return
 
-        await self.provider.function(self.key, **self.provider.extra)
+        await self.provider.function(**self.provider.args)
 
     def close(self):
         for sub in self.subscriptions:
@@ -74,17 +74,18 @@ class Broker:
         assert key in self._channels
         return self._channels[key]
 
-    def provide(self, channel_key, function, extra: dict = None):
+    def register_provider(self, channel_key, callback, **args: dict):
         channel = self.get_channel(channel_key)
-        channel.provider = Provider(function, extra or {})
+        assert channel.provider is None
+        channel.provider = Provider(callback, args or {})
 
-    def register(self, channel_key, callback):
+    def add_callback(self, channel_key, callback):
         channel = self.get_channel(channel_key)
         sub = CallbackSubscription(channel, callback)
         channel.subscriptions.append(sub)
         return sub
 
-    def deregister(self, channel_key, callback):
+    def remove_callback(self, channel_key, callback):
         channel = self.get_channel(channel_key)
         for sub in channel.subscriptions:
             if getattr(sub, "_callback", None) == callback:
@@ -101,12 +102,9 @@ class Broker:
     async def receive(self, channel_key, subscription=None):
         try:
             sub = subscription or self.subscribe(channel_key)
-            data = await sub.get()
-        except asyncio.CancelledError:
-            data = None
+            return await sub.get()
         finally:
             _ = subscription or self.unsubscribe(channel_key, sub)
-        return data
 
     async def shutdown(self):
         for channel in self._channels.values():

@@ -69,10 +69,10 @@ class TestBrokerPassive:
 
 class TestBrokerActive:
     async def test_provides(self, broker):
-        async def compute(channel):
-            await broker.publish(channel, 1234)
+        async def compute(value):
+            await broker.publish("abcd", value)
 
-        broker.provide("abcd", compute)
+        broker.register_provider("abcd", compute, value=1234)
         msg = await broker.receive(channel_key="abcd")
         assert msg == 1234
 
@@ -80,18 +80,18 @@ class TestBrokerActive:
         async def callback(channel, message):
             pass
 
-        sub = broker.register("abcd", callback)
+        sub = broker.add_callback("abcd", callback)
         sub.cancel()
 
-        broker.deregister("abcd", callback)
+        broker.remove_callback("abcd", callback)
 
     async def test_callback(self, broker):
         async def callback(channel, message):
             data.append((channel, message))
 
         data = []
-        broker.register("abcd", callback)
+        broker.add_callback("abcd", callback)
         await broker.publish("abcd", 5678)
         assert data == [("abcd", 5678)]
 
-        broker.deregister("abcd", callback)
+        broker.remove_callback("abcd", callback)
