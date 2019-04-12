@@ -14,7 +14,7 @@ pytestmark = pytest.mark.asyncio
 
 
 class FakeSession:
-    def __init__(self, websock, **kwargs):
+    def __init__(self, websock, *args, **kwargs):
         self.websock = websock
         self.messages = []
 
@@ -70,7 +70,7 @@ class TestServerSingleClient:
 
     async def test_default_session(self):
         server = Server()
-        session = server.make_session(websock=None, interpreter=None, listing={})
+        session = server.make_session(websock=None, actor=None)
         assert hasattr(session, "run")
 
 
