@@ -6,6 +6,7 @@ import logging
 
 import aiohttp
 
+from genlib.actor import Actor
 from genlib.web.session import UserSession
 
 
@@ -14,7 +15,7 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture()
-async def session(caplog):
+async def session(caplog, mocker):
     messages = asyncio.Queue()
 
     class MockWebSocket:
@@ -25,7 +26,7 @@ async def session(caplog):
         async def send_json(self, data):
             self.data = data
 
-    session = UserSession(websock=MockWebSocket(), registry=None)
+    session = UserSession(websock=MockWebSocket(), actor=mocker.Mock(Actor))
     caplog.set_level(logging.ERROR, logger="genlib.session")
 
     session._messages = messages
@@ -68,18 +69,18 @@ class TestSession:
 
     async def test_log_exception(self, session, caplog):
         caplog.set_level(logging.ERROR, logger="genlib.session")
-        await self._put_message(session, '{"type": "listing"}')
+        await self._put_message(session, '{"type": "invoke"}')
 
         assert len(caplog.records) == 1
-        assert "Failed to handle request of type `listing`." in caplog.text
+        assert "Failed to handle request of type `invoke`." in caplog.text
         assert not session._task.done()
 
-    async def test_listing(self, session, registry):
-        session.registry = registry
+    async def test_listing(self, session):
+        session.actor.get_listing.return_value = ["A", "B", "C"]
         await self._put_message(session, '{"type": "listing"}')
         await asyncio.sleep(0.001)
 
-        assert session.websock.data == {"data": {}, "type": "listing"}
+        assert session.websock.data == {"data": ["A", "B", "C"], "type": "listing"}
         assert not session._task.done()
 
     async def test_connect(self, session):

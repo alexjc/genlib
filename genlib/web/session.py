@@ -7,11 +7,11 @@ import aiohttp.web
 
 
 class UserSession:
-    def __init__(self, websock, registry):
+    def __init__(self, websock, actor):
         self.log = logging.getLogger("genlib.session")
-
         self.websock = websock
-        self.registry = registry
+        self.actor = actor
+        self.skills = {}
 
     async def run(self):
         """Read messages from the client as they come in, and handle them in an
@@ -23,24 +23,44 @@ class UserSession:
             if msg.type == aiohttp.web.WSMsgType.CLOSE:
                 break
 
+    async def shutdown(self):
+        await self.actor.shutdown()
+
     async def _process(self, msg: dict):
         """Process a websocket request by finding the appropriate message handler.
         """
         try:
             handler = getattr(self, "handle_" + msg["type"], self.handle_default)
             await handler(msg)
-        except:
-            self.log.exception(f"Failed to handle request of type `{msg['type']}`.")
+        except Exception:  # pylint: disable=broad-except
+            self.log.exception("Failed to handle request of type `%s`.", msg["type"])
 
-    async def handle_listing(self, msg: dict):
-        data = {
-            uri: self.registry.find_skill_schema(uri).as_dict()
-            for uri in self.registry.list_skills_schema()
-        }
-        await self.websock.send_json({"type": "listing", "data": data})
+    async def handle_listing(self, _: dict):
+        listing = self.actor.get_listing()
+        await self.websock.send_json({"type": "listing", "data": listing})
 
     async def handle_connect(self, msg: dict):
         pass
 
+    async def handle_invoke(self, msg: dict):
+        skill = await self.actor.invoke(msg["command"], msg.get("parameters", {}))
+        self.skills[msg["uuid"]] = skill
+        await self.websock.send_json({"type": "invoked", "uuid": msg["uuid"]})
+
+    async def handle_revoke(self, msg: dict):
+        pass
+
+    async def handle_push_input(self, msg: dict):
+        skill = self.skills[msg["uuid"]]
+        for key, value in msg["data"].items():
+            await self.actor.push_skill_input(skill, key, value)
+
+    async def handle_pull_output(self, msg: dict):
+        skill = self.skills[msg["uuid"]]
+        output = await self.actor.pull_skill_output(skill, msg["key"])
+        await self.websock.send_json(
+            {"type": "pulled_output", "uuid": msg["uuid"], "data": output.data}
+        )
+
     async def handle_default(self, msg: dict):
-        self.log.warning(f"Websocket message of type `{msg['type']}` unknown.")
+        self.log.warning("Websocket message of type `%s` unknown.", msg["type"])
