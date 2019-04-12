@@ -24,6 +24,7 @@ class TestFileSystemWatcher:
     async def test_start_stop(self):
         watcher = FileSystemWatcher(callback=None)
         watcher.monitor("genlib")
+        await asyncio.sleep(1.0)
         watcher.shutdown()
 
     async def test_modified(self):

@@ -32,11 +32,11 @@ class LocalRegistry:
     """Loads and stores skills from file-system, indexing them by URI.
     """
 
-    def __init__(self):
+    def __init__(self, watcher=None):
         self.modules = {}
         self.schemas = {}
         self.classes = {}
-        self.watcher = FileSystemWatcher(callback=self._load_file)
+        self.watcher = watcher or FileSystemWatcher(callback=self._load_file)
 
     # ---------------------------------------------------------------------------------
     # Public Interface
@@ -55,8 +55,6 @@ class LocalRegistry:
         return self.classes[schema.uri]()
 
     def find_skill_schema(self, uri):
-        if uri not in self.schemas:
-            print(list(self.schemas.keys()))
         return self.schemas[uri]
 
     def list_skills_schema(self):
