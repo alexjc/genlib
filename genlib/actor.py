@@ -16,7 +16,7 @@ class Actor:
         await self.interpreter.shutdown()
 
     def get_listing(self):
-        return self.listing
+        return list(self.listing.keys())
 
     async def push_skill_input(self, skill, key, value):
         await self.interpreter.push_skill_input(skill, key, Item(value))
@@ -31,6 +31,10 @@ class Actor:
 
         await self.interpreter.launch(skill)
         self.skills.append(skill)
+
+        for key, value in parameters.items():
+            print("pushing", key, value)
+            await self.push_skill_input(skill, key, value)
         return skill
 
     async def revoke(self, skill):
