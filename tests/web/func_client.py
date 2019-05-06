@@ -59,7 +59,7 @@ class TestSingle:
     async def test_listing(self, server):
         async with Client(server.url) as client:
             listing = await client.get_listing()
-            assert listing["data"] == ["TestConnection"]
+            assert list(listing["data"].keys()) == ["TestConnection"]
 
     async def test_invoke_revoke(self, server):
         async with Client(server.url) as client:

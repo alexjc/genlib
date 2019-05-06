@@ -16,7 +16,10 @@ class Actor:
         await self.interpreter.shutdown()
 
     def get_listing(self):
-        return list(self.listing.keys())
+        return {
+            key: self.registry.find_skill_schema(uri).as_dict()
+            for key, uri in self.listing.items()
+        }
 
     async def push_skill_input(self, skill, key, value):
         await self.interpreter.push_skill_input(skill, key, Item(value))
@@ -33,7 +36,6 @@ class Actor:
         self.skills.append(skill)
 
         for key, value in parameters.items():
-            print("pushing", key, value)
             await self.push_skill_input(skill, key, value)
         return skill
 
