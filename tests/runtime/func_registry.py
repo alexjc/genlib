@@ -5,8 +5,8 @@ import asyncio
 import pathlib
 import tempfile
 
-from genlib.skills import BaseSkill
-from genlib.registry import LocalRegistry, FileSystemWatcher
+from genlib.core.skills import BaseSkill
+from genlib.runtime.registry import LocalRegistry, FileSystemWatcher
 
 
 # All the tests in this file can be treated as asynchronous.
@@ -86,7 +86,7 @@ class TestLocalRegistry:
 
     async def test_load_folder_with_one_skill(self, local_registry, temporary_folder):
         open(f"{temporary_folder}/myskill.py", "w").write(
-            "import genlib.skills as s\n" + FAKE_SKILL_CODE
+            "import genlib.core.skills as s\n" + FAKE_SKILL_CODE
         )
         local_registry.load_folder(temporary_folder)
         assert len(local_registry.modules) == 1
@@ -96,7 +96,7 @@ class TestLocalRegistry:
 
     async def test_load_folder_construct_skill(self, local_registry, temporary_folder):
         open(f"{temporary_folder}/myskill.py", "w").write(
-            "import genlib.skills as s\n" + FAKE_SKILL_CODE
+            "import genlib.core.skills as s\n" + FAKE_SKILL_CODE
         )
         local_registry.load_folder(temporary_folder)
 
@@ -121,6 +121,6 @@ class TestLocalRegistry:
         await asyncio.sleep(1.0)
 
         with open(f"{temporary_folder}/myskill.py", "w+") as f:
-            f.write("import genlib.skills as s\n" + FAKE_SKILL_CODE)
+            f.write("import genlib.core.skills as s\n" + FAKE_SKILL_CODE)
         await asyncio.sleep(1.0)
         assert len(local_registry.list_skills_schema()) == 1

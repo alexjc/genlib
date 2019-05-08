@@ -2,7 +2,7 @@
 
 import unittest
 
-from genlib.stream import Item
+from genlib.core.stream import Item
 
 
 class TestStreamItem(unittest.TestCase):

@@ -3,9 +3,9 @@
 import pytest
 import asyncio
 
-from genlib.stream import Item
-from genlib.interpreter import Interpreter
-from genlib.skills import Skill, Input, Output, watching
+from genlib.core.stream import Item
+from genlib.core.skills import Skill, Input, Output, watching
+from genlib.runtime.interpreter import Interpreter
 
 
 # All the tests in this file can be treated as asynchronous.

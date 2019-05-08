@@ -10,8 +10,8 @@ import importlib.util
 import watchdog.events
 import watchdog.observers
 
-import genlib.skills
-import genlib.schema
+from genlib.core import skills, schema
+
 
 __all__ = ["LocalRegistry", "FileSystemWatcher"]
 
@@ -19,8 +19,8 @@ __all__ = ["LocalRegistry", "FileSystemWatcher"]
 def is_python_skill(obj):
     return (
         inspect.isclass(obj)
-        and issubclass(obj, genlib.skills.BaseSkill)
-        and obj not in genlib.skills.__dict__.values()
+        and issubclass(obj, skills.BaseSkill)
+        and obj not in skills.__dict__.values()
     )
 
 
@@ -88,7 +88,7 @@ class LocalRegistry:
             self._load_from_class(uri=f"{path}:{key}", obj=obj)
 
     def _load_from_class(self, uri, obj):
-        scm = genlib.schema.SkillSchema(uri, inputs=obj.inputs, outputs=obj.outputs)
+        scm = schema.SkillSchema(uri, inputs=obj.inputs, outputs=obj.outputs)
         self.schemas[uri] = scm
         self.classes[uri] = obj
 

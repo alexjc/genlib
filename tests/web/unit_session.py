@@ -6,7 +6,7 @@ import logging
 
 import aiohttp
 
-from genlib.actor import Actor
+from genlib.runtime.actor import Actor
 from genlib.web.session import UserSession
 
 

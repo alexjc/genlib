@@ -2,8 +2,8 @@
 
 import pytest
 
-from genlib.skills import Skill, Input, Output, watching, provides
-from genlib.stream import Item
+from genlib.core.skills import Skill, Input, Output, watching, provides
+from genlib.core.stream import Item
 
 
 class TestConfiguration:

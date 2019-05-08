@@ -3,7 +3,7 @@
 import typing
 import itertools
 
-from genlib.types import check_type, add_type_class
+from genlib.core.types import check_type, add_type_class
 
 
 ATOMIC_TYPES = ("float", "int", "str", "bool", "Any", "T")

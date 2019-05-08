@@ -71,7 +71,7 @@ class Broker:
         del self._channels[key]
 
     def get_channel(self, key):
-        assert key in self._channels
+        assert key in self._channels, f"Channel `{key}` was not created."
         return self._channels[key]
 
     def register_provider(self, channel_key, callback, **args: dict):

@@ -4,8 +4,8 @@ import asyncio
 import aiohttp.web
 
 from .session import UserSession
-from ..actor import Actor
-from ..registry import LocalRegistry
+from ..runtime.actor import Actor
+from ..runtime.registry import LocalRegistry
 
 
 class Server(aiohttp.web.Application):

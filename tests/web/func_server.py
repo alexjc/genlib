@@ -7,7 +7,7 @@ import asyncio
 import aiohttp, aiohttp.web, aiohttp.test_utils
 
 from genlib.web.server import Server
-from genlib.registry import LocalRegistry
+from genlib.runtime.registry import LocalRegistry
 
 
 # All the tests in this file can be treated as asynchronous.

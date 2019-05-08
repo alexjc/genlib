@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 
-from genlib.broker import Broker
+from genlib.runtime.broker import Broker
 
 
 # All the tests in this file can be treated as asynchronous.

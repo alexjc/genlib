@@ -1,7 +1,7 @@
 # genlib — Copyright (c) 2019, Alex J. Champandard. Code licensed under the GNU AGPLv3.
 
 from .interpreter import Interpreter
-from .stream import Item
+from ..core.stream import Item
 
 
 class Actor:

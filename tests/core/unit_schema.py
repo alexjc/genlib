@@ -1,6 +1,6 @@
 # genlib — Copyright (c) 2019, Alex J. Champandard. Code licensed under the GNU AGPLv3.
 
-from genlib.schema import SkillSchema, SkillInput, SkillOutput
+from genlib.core.schema import SkillSchema, SkillInput, SkillOutput
 
 
 class TestInputDefinitions:

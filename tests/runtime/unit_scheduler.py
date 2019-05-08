@@ -2,8 +2,8 @@
 
 import pytest
 
-from genlib.skills import Skill, Output
-from genlib.scheduler import Scheduler
+from genlib.core.skills import Skill, Output
+from genlib.runtime.scheduler import Scheduler
 
 
 class FakeSkill(Skill):

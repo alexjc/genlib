@@ -14,8 +14,8 @@ from genlib.web.server import Server
 pytestmark = pytest.mark.asyncio
 
 
-from genlib.skills import Skill, Input, Output
-from genlib.stream import Item
+from genlib.core.skills import Skill, Input, Output
+from genlib.core.stream import Item
 
 
 class DoEcho(Skill):

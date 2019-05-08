@@ -2,8 +2,8 @@
 
 import pytest
 
-from genlib.recipe import Recipe
-from genlib.schema import SkillSchema, SkillInput, SkillOutput
+from genlib.core.recipe import Recipe
+from genlib.core.schema import SkillSchema, SkillInput, SkillOutput
 
 
 @pytest.fixture
