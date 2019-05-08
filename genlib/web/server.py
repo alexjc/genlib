@@ -43,10 +43,11 @@ class Server(aiohttp.web.Application):
 
     async def shutdown(self):
         async def close(session):
+            if not session.websock.closed:
+                await session.websock.close(
+                    code=aiohttp.WSCloseCode.GOING_AWAY, message="Server Shutdown"
+                )
             await session.shutdown()
-            await session.websock.close(
-                code=aiohttp.WSCloseCode.GOING_AWAY, message="Server Shutdown"
-            )
 
         if len(self.sessions) > 0:
             await asyncio.wait([close(session) for session in self.sessions])

@@ -24,7 +24,9 @@ class UserSession:
                 self._tasks.append(task)
             if msg.type == aiohttp.web.WSMsgType.CLOSE:
                 break
-        await asyncio.wait(self._tasks)
+
+        if len(self._tasks) > 0:
+            await asyncio.wait(self._tasks)
 
     async def shutdown(self):
         assert len(self._tasks) == 0

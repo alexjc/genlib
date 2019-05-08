@@ -65,6 +65,11 @@ class TestServerSingleClient:
             await conn.close()
             assert len(server.sessions) == 0
 
+    async def test_force_shutdown(self, server, client):
+        async with client.ws_connect(server.url) as conn:
+            assert len(server.sessions) == 1
+            await server.shutdown()
+
     async def test_clean_shutdown(self, server, client):
         async with client.ws_connect(server.url) as conn:
             assert len(server.sessions) == 1
